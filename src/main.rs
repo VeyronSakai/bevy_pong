@@ -13,14 +13,23 @@ fn main() {
         // 初期化処理。StartUp Stageで実行される。
         .add_startup_system(setup.system())
         .add_startup_stage("game_setup", SystemStage::single(spawn_paddle.system()))
+        .add_system_to_stage(CoreStage::PreUpdate, handle_input.system())
         // PostUpdateで実行したいので、add_system_setではなく、add_system_set_to_stageを使う
-        .add_system_set_to_stage(
-            CoreStage::PostUpdate,
-            SystemSet::new()
-                .with_system(size_scaling.system()),
-        )
+        .add_system_to_stage(CoreStage::PostUpdate, size_scaling.system())
         .run();
 }
+
+fn handle_input(input: Res<Input<KeyCode>>, mut paddles: Query<&mut Paddle>) {
+
+    if let Some(mut paddle) = paddles.iter_mut().next() {
+        if input.pressed(KeyCode::Space) {
+            println!("pressed!");
+        }
+    }
+}
+
+// Tag Component of Paddle Entity
+struct Paddle;
 
 fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
     // カメラを生成する
@@ -46,7 +55,8 @@ pub fn spawn_paddle(
             material: materials.paddle_body_material.clone(),
             ..Default::default()
         })
-        .insert(SpriteSize::new(0.3, 1.));
+        .insert(SpriteSize::new(0.3, 1.))
+        .insert(Paddle);
 }
 
 fn size_scaling(windows: Res<Windows>, mut q: Query<(&SpriteSize, &mut Sprite)>) {
