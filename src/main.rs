@@ -14,22 +14,51 @@ fn main() {
         .add_startup_system(setup.system())
         .add_startup_stage("game_setup", SystemStage::single(spawn_paddle.system()))
         .add_system_to_stage(CoreStage::PreUpdate, handle_input.system())
-        // PostUpdateで実行したいので、add_system_setではなく、add_system_set_to_stageを使う
-        .add_system_to_stage(CoreStage::PostUpdate, size_scaling.system())
+        .add_system_set_to_stage(
+            CoreStage::PostUpdate,
+            SystemSet::new()
+                .with_system(move_paddle.system())
+                .with_system(position_translation.system())
+                .with_system(size_scaling.system())
+        )
         .run();
 }
 
-fn handle_input(input: Res<Input<KeyCode>>, mut paddles: Query<&mut Paddle>) {
-
-    if let Some(mut paddle) = paddles.iter_mut().next() {
-        if input.pressed(KeyCode::Space) {
-            println!("pressed!");
+fn handle_input(input: Res<Input<KeyCode>>, mut paddles: Query<(&mut PaddleVelocity), With<Paddle>>) {
+    if let Some(mut velocity) = paddles.iter_mut().next() {
+        if input.pressed(KeyCode::Up) {
+            velocity.val = 1.0;
+        } else if input.pressed(KeyCode::Down) {
+            velocity.val = -1.0;
+        } else {
+            velocity.val = 0.0;
         }
+    }
+}
+
+fn position_translation(mut q: Query<(&Position, &mut Transform)>) {
+    for (pos, mut transform) in q.iter_mut() {
+        transform.translation[1] = pos.y;
     }
 }
 
 // Tag Component of Paddle Entity
 struct Paddle;
+
+struct PaddleVelocity {
+    val: f32,
+}
+
+fn move_paddle(mut q: Query<(&mut PaddleVelocity, &mut Position), With<Paddle>>) {
+    for (velocity, mut pos) in q.iter_mut() {
+        pos.y = pos.y + velocity.val * 0.2;
+    }
+}
+
+struct Position {
+    x: f32,
+    y: f32,
+}
 
 fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
     // カメラを生成する
@@ -55,11 +84,13 @@ pub fn spawn_paddle(
             material: materials.paddle_body_material.clone(),
             ..Default::default()
         })
-        .insert(SpriteSize::new(0.3, 1.))
-        .insert(Paddle);
+        .insert(PaddleSize::new(0.3, 1.0))
+        .insert(Paddle)
+        .insert(PaddleVelocity { val: 0.0 })
+        .insert(Position { x: 0.0, y: 0.0 });
 }
 
-fn size_scaling(windows: Res<Windows>, mut q: Query<(&SpriteSize, &mut Sprite)>) {
+fn size_scaling(windows: Res<Windows>, mut q: Query<(&PaddleSize, &mut Sprite)>) {
     let window = windows.get_primary().unwrap();
     for (sprite_size, mut sprite) in q.iter_mut() {
         sprite.size = Vec2::new(
@@ -69,16 +100,16 @@ fn size_scaling(windows: Res<Windows>, mut q: Query<(&SpriteSize, &mut Sprite)>)
     }
 }
 
-pub struct SpriteSize {
+pub struct PaddleSize {
     pub width: f32,
     pub height: f32,
 }
 
-impl SpriteSize {
+impl PaddleSize {
     pub fn new(x: f32, y: f32) -> Self {
         Self {
-            width: x.clone(),
-            height: y.clone(),
+            width: x,
+            height: y,
         }
     }
 }
