@@ -75,6 +75,7 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, w
     // 背景の色を黒くする
     commands.insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)));
 
+    // Paddleの生成
     spawn_paddle(&mut commands, windows, paddle_color_material);
 }
 
