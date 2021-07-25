@@ -14,7 +14,6 @@ fn main() {
         .add_plugins(DefaultPlugins)
         // 初期化処理。StartUp Stageで実行される。
         .add_startup_system(setup.system())
-        .add_startup_stage("game_setup", SystemStage::single(size_scaling.system()))
         .add_system_to_stage(CoreStage::PreUpdate, handle_input.system())
         .add_system_set_to_stage(
             CoreStage::Update,
@@ -62,7 +61,7 @@ struct Position {
     y: f32,
 }
 
-fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
+fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, windows: Res<Windows>) {
     let paddle_color = Color::rgb(0.7, 0.7, 0.7);
 
     let paddle_color_material = materials.add(paddle_color.into());
@@ -76,12 +75,22 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
     // 背景の色を黒くする
     commands.insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)));
 
+    spawn_paddle(&mut commands, windows, paddle_color_material);
+}
+
+fn spawn_paddle(commands: &mut Commands, windows: Res<Windows>, paddle_color_material: Handle<ColorMaterial>) {
+    let window = windows.get_primary().unwrap();
+    let sprite_size = Vec2::new(0.3 / 10 as f32 * window.width() as f32, 1.0 / 10 as f32 * window.height() as f32);
     commands
         .spawn_bundle(SpriteBundle {
             material: paddle_color_material.clone(),
+            sprite: Sprite {
+                size: sprite_size,
+                ..Default::default()
+            },
             ..Default::default()
         })
-        .insert(PaddleSize::new(0.3, 1.0))
+        // .insert(PaddleSize::new(0.3, 1.0))
         .insert(Paddle)
         .insert(PaddleVelocity { val: 0.0 })
         .insert(Position { x: 0.0, y: 0.0 });
@@ -89,21 +98,6 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
 
 pub struct Materials {
     pub paddle_body_material: Handle<ColorMaterial>,
-}
-
-pub fn spawn_paddle(
-    mut commands: Commands,
-    materials: Res<Materials>,
-) {
-    commands
-        .spawn_bundle(SpriteBundle {
-            material: materials.paddle_body_material.clone(),
-            ..Default::default()
-        })
-        .insert(PaddleSize::new(0.3, 1.0))
-        .insert(Paddle)
-        .insert(PaddleVelocity { val: 0.0 })
-        .insert(Position { x: 0.0, y: 0.0 });
 }
 
 fn size_scaling(windows: Res<Windows>, mut q: Query<(&PaddleSize, &mut Sprite)>) {
