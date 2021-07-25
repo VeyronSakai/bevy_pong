@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+const PADDLE_SPEED: f32 = 20.0;
+
 fn main() {
     App::build()
         // ウインドウの生成
@@ -12,26 +14,26 @@ fn main() {
         .add_plugins(DefaultPlugins)
         // 初期化処理。StartUp Stageで実行される。
         .add_startup_system(setup.system())
-        .add_startup_stage("game_setup", SystemStage::single(spawn_paddle.system()))
+        .add_startup_stage("game_setup", SystemStage::single(size_scaling.system()))
         .add_system_to_stage(CoreStage::PreUpdate, handle_input.system())
         .add_system_set_to_stage(
-            CoreStage::PostUpdate,
+            CoreStage::Update,
             SystemSet::new()
                 .with_system(move_paddle.system())
-                .with_system(position_translation.system())
-                .with_system(size_scaling.system())
+                .with_system(position_translation.system()),
         )
         .run();
 }
 
 fn handle_input(input: Res<Input<KeyCode>>, mut paddles: Query<(&mut PaddleVelocity), With<Paddle>>) {
     if let Some(mut velocity) = paddles.iter_mut().next() {
+        velocity.val = 0.0;
+
         if input.pressed(KeyCode::Up) {
-            velocity.val = 1.0;
-        } else if input.pressed(KeyCode::Down) {
-            velocity.val = -1.0;
-        } else {
-            velocity.val = 0.0;
+            velocity.val += PADDLE_SPEED;
+        }
+        if input.pressed(KeyCode::Down) {
+            velocity.val += -PADDLE_SPEED;
         }
     }
 }
@@ -61,14 +63,28 @@ struct Position {
 }
 
 fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
+    let paddle_color = Color::rgb(0.7, 0.7, 0.7);
+
+    let paddle_color_material = materials.add(paddle_color.into());
+
     // カメラを生成する
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     // Material
     commands.insert_resource(Materials {
-        paddle_body_material: materials.add(Color::rgb(0.7, 0.7, 0.7).into()),
+        paddle_body_material: paddle_color_material.clone(),
     });
     // 背景の色を黒くする
     commands.insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)));
+
+    commands
+        .spawn_bundle(SpriteBundle {
+            material: paddle_color_material.clone(),
+            ..Default::default()
+        })
+        .insert(PaddleSize::new(0.3, 1.0))
+        .insert(Paddle)
+        .insert(PaddleVelocity { val: 0.0 })
+        .insert(Position { x: 0.0, y: 0.0 });
 }
 
 pub struct Materials {
