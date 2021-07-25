@@ -81,7 +81,12 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, w
 
 fn spawn_paddle(commands: &mut Commands, windows: Res<Windows>, paddle_color_material: Handle<ColorMaterial>) {
     let window = windows.get_primary().unwrap();
-    let sprite_size = Vec2::new(0.3 / 10 as f32 * window.width() as f32, 1.0 / 10 as f32 * window.height() as f32);
+
+    let sprite_width = 0.3 / 10 as f32 * window.width() as f32;
+    let sprite_height = 2.0 / 10 as f32 * window.height() as f32;
+
+    let sprite_size = Vec2::new(sprite_width, sprite_height);
+
     commands
         .spawn_bundle(SpriteBundle {
             material: paddle_color_material.clone(),
@@ -89,9 +94,9 @@ fn spawn_paddle(commands: &mut Commands, windows: Res<Windows>, paddle_color_mat
                 size: sprite_size,
                 ..Default::default()
             },
+            transform: Transform { translation: Vec3::new(-window.width() / 2.0 + sprite_width, 0.0, 0.0), ..Default::default() },
             ..Default::default()
         })
-        // .insert(PaddleSize::new(0.3, 1.0))
         .insert(Paddle)
         .insert(PaddleVelocity { val: 0.0 })
         .insert(Position { x: 0.0, y: 0.0 });
@@ -99,28 +104,4 @@ fn spawn_paddle(commands: &mut Commands, windows: Res<Windows>, paddle_color_mat
 
 pub struct Materials {
     pub paddle_body_material: Handle<ColorMaterial>,
-}
-
-fn size_scaling(windows: Res<Windows>, mut q: Query<(&PaddleSize, &mut Sprite)>) {
-    let window = windows.get_primary().unwrap();
-    for (sprite_size, mut sprite) in q.iter_mut() {
-        sprite.size = Vec2::new(
-            sprite_size.width / 10 as f32 * window.width() as f32,
-            sprite_size.height / 10 as f32 * window.height() as f32,
-        );
-    }
-}
-
-pub struct PaddleSize {
-    pub width: f32,
-    pub height: f32,
-}
-
-impl PaddleSize {
-    pub fn new(x: f32, y: f32) -> Self {
-        Self {
-            width: x,
-            height: y,
-        }
-    }
 }
