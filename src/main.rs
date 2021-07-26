@@ -1,4 +1,9 @@
+mod paddle;
+mod common;
+
 use bevy::prelude::*;
+use crate::paddle::*;
+use crate::common::*;
 
 const PADDLE_SPEED: f32 = 20.0;
 
@@ -48,38 +53,6 @@ fn handle_input(input: Res<Input<KeyCode>>, mut paddles: Query<(&mut PaddleVeloc
     }
 }
 
-fn position_translation(mut q: Query<(&Position, &mut Transform)>) {
-    for (pos, mut transform) in q.iter_mut() {
-        transform.translation[1] = pos.y;
-    }
-}
-
-// Tag Component of Paddle Entity
-struct Paddle {
-    side_type: PaddleSideType,
-}
-
-#[derive(PartialEq, Copy, Clone)]
-enum PaddleSideType {
-    Left,
-    Right,
-}
-
-struct PaddleVelocity {
-    val: f32,
-}
-
-fn move_paddle(mut q: Query<(&mut PaddleVelocity, &mut Position), With<Paddle>>) {
-    for (velocity, mut pos) in q.iter_mut() {
-        pos.y = pos.y + velocity.val * 0.2;
-    }
-}
-
-struct Position {
-    x: f32,
-    y: f32,
-}
-
 fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, windows: Res<Windows>) {
     let paddle_color = Color::rgb(0.7, 0.7, 0.7);
 
@@ -97,37 +70,4 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, w
     // Paddleの生成
     spawn_paddle(&mut commands, &windows, &paddle_color_material, PaddleSideType::Left);
     spawn_paddle(&mut commands, &windows, &paddle_color_material, PaddleSideType::Right);
-}
-
-fn spawn_paddle(commands: &mut Commands, windows: &Res<Windows>, paddle_color_material: &Handle<ColorMaterial>, side_type: PaddleSideType) {
-    let window = windows.get_primary().unwrap();
-
-    let sprite_width = 0.3 / 10 as f32 * window.width() as f32;
-    let sprite_height = 2.0 / 10 as f32 * window.height() as f32;
-
-    let sprite_size = Vec2::new(sprite_width, sprite_height);
-
-    let pos_x = if side_type == PaddleSideType::Left {
-        -window.width() / 2.0 + sprite_width
-    } else {
-        window.width() / 2.0 - sprite_width
-    };
-
-    commands
-        .spawn_bundle(SpriteBundle {
-            material: (*paddle_color_material).clone(),
-            sprite: Sprite {
-                size: sprite_size,
-                ..Default::default()
-            },
-            transform: Transform { translation: Vec3::new(pos_x, 0.0, 0.0), ..Default::default() },
-            ..Default::default()
-        })
-        .insert(Paddle { side_type })
-        .insert(PaddleVelocity { val: 0.0 })
-        .insert(Position { x: 0.0, y: 0.0 });
-}
-
-pub struct Materials {
-    pub paddle_body_material: Handle<ColorMaterial>,
 }
