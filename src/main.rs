@@ -24,15 +24,26 @@ fn main() {
         .run();
 }
 
-fn handle_input(input: Res<Input<KeyCode>>, mut paddles: Query<(&mut PaddleVelocity), With<Paddle>>) {
-    if let Some(mut velocity) = paddles.iter_mut().next() {
+fn handle_input(input: Res<Input<KeyCode>>, mut paddles: Query<(&mut PaddleVelocity, &Paddle)>) {
+    for (mut velocity, paddle) in paddles.iter_mut() {
         velocity.val = 0.0;
 
-        if input.pressed(KeyCode::Up) {
-            velocity.val += PADDLE_SPEED;
-        }
-        if input.pressed(KeyCode::Down) {
-            velocity.val += -PADDLE_SPEED;
+        if paddle.side_type == PaddleSideType::Left {
+            if input.pressed(KeyCode::W) {
+                velocity.val += PADDLE_SPEED;
+            }
+
+            if input.pressed(KeyCode::S) {
+                velocity.val += -PADDLE_SPEED;
+            }
+        } else {
+            if input.pressed(KeyCode::Up) {
+                velocity.val += PADDLE_SPEED;
+            }
+
+            if input.pressed(KeyCode::Down) {
+                velocity.val += -PADDLE_SPEED;
+            }
         }
     }
 }
@@ -44,7 +55,15 @@ fn position_translation(mut q: Query<(&Position, &mut Transform)>) {
 }
 
 // Tag Component of Paddle Entity
-struct Paddle;
+struct Paddle {
+    side_type: PaddleSideType,
+}
+
+#[derive(PartialEq, Copy, Clone)]
+enum PaddleSideType {
+    Left,
+    Right,
+}
 
 struct PaddleVelocity {
     val: f32,
@@ -76,10 +95,11 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, w
     commands.insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)));
 
     // Paddleの生成
-    spawn_paddle(&mut commands, windows, paddle_color_material);
+    spawn_paddle(&mut commands, &windows, &paddle_color_material, PaddleSideType::Left);
+    spawn_paddle(&mut commands, &windows, &paddle_color_material, PaddleSideType::Right);
 }
 
-fn spawn_paddle(commands: &mut Commands, windows: Res<Windows>, paddle_color_material: Handle<ColorMaterial>) {
+fn spawn_paddle(commands: &mut Commands, windows: &Res<Windows>, paddle_color_material: &Handle<ColorMaterial>, side_type: PaddleSideType) {
     let window = windows.get_primary().unwrap();
 
     let sprite_width = 0.3 / 10 as f32 * window.width() as f32;
@@ -87,17 +107,23 @@ fn spawn_paddle(commands: &mut Commands, windows: Res<Windows>, paddle_color_mat
 
     let sprite_size = Vec2::new(sprite_width, sprite_height);
 
+    let pos_x = if side_type == PaddleSideType::Left {
+        -window.width() / 2.0 + sprite_width
+    } else {
+        window.width() / 2.0 - sprite_width
+    };
+
     commands
         .spawn_bundle(SpriteBundle {
-            material: paddle_color_material.clone(),
+            material: (*paddle_color_material).clone(),
             sprite: Sprite {
                 size: sprite_size,
                 ..Default::default()
             },
-            transform: Transform { translation: Vec3::new(-window.width() / 2.0 + sprite_width, 0.0, 0.0), ..Default::default() },
+            transform: Transform { translation: Vec3::new(pos_x, 0.0, 0.0), ..Default::default() },
             ..Default::default()
         })
-        .insert(Paddle)
+        .insert(Paddle { side_type })
         .insert(PaddleVelocity { val: 0.0 })
         .insert(Position { x: 0.0, y: 0.0 });
 }
