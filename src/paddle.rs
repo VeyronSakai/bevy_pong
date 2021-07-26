@@ -51,7 +51,7 @@ pub fn move_paddle(mut q: Query<(&mut PaddleVelocity, &mut Position), With<Paddl
     }
 }
 
-pub fn position_translation(mut q: Query<(&Position, &mut Transform)>) {
+pub fn update_paddle_translation(mut q: Query<(&Position, &mut Transform)>) {
     for (pos, mut transform) in q.iter_mut() {
         transform.translation[1] = pos.y;
     }

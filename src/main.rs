@@ -24,7 +24,7 @@ fn main() {
             CoreStage::Update,
             SystemSet::new()
                 .with_system(move_paddle.system())
-                .with_system(position_translation.system()),
+                .with_system(update_paddle_translation.system()),
         )
         .run();
 }
