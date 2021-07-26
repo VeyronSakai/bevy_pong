@@ -70,4 +70,25 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, w
     // Paddleの生成
     spawn_paddle(&mut commands, &windows, &paddle_color_material, PaddleSideType::Left);
     spawn_paddle(&mut commands, &windows, &paddle_color_material, PaddleSideType::Right);
+
+    let ball_color = Color::rgb(0.7, 0.7, 0.7);
+
+    let ball_color_material = materials.add(ball_color.into());
+
+    let window = windows.get_primary().unwrap();
+
+    let sprite_width = 0.3 / 10 as f32 * window.width() as f32;
+    let sprite_height = 0.3 / 10 as f32 * window.height() as f32;
+
+    let sprite_size = Vec2::new(sprite_width, sprite_height);
+
+    commands.spawn_bundle(
+        SpriteBundle {
+            material: ball_color_material.clone(),
+            sprite: Sprite {
+                size: sprite_size,
+                ..Default::default()
+            },
+            ..Default::default()
+        });
 }
