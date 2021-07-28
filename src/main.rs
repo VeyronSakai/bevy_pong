@@ -24,9 +24,16 @@ fn main() {
             CoreStage::Update,
             SystemSet::new()
                 .with_system(move_paddle.system())
-                .with_system(update_paddle_translation.system()),
+                .with_system(update_paddle_translation.system())
+                .with_system(update_ball_translation.system()),
         )
         .run();
+}
+
+fn update_ball_translation(mut query: Query<&mut Transform, With<Ball>>) {
+    if let Ok(mut transform) = query.single_mut() {
+        transform.translation.x += 1.0;
+    }
 }
 
 fn handle_input(input: Res<Input<KeyCode>>, mut paddles: Query<(&mut PaddleVelocity, &Paddle)>) {
@@ -90,5 +97,8 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, w
                 ..Default::default()
             },
             ..Default::default()
-        });
+        })
+        .insert(Ball);
 }
+
+pub struct Ball;
