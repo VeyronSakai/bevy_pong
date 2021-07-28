@@ -4,6 +4,7 @@ mod common;
 use bevy::prelude::*;
 use crate::paddle::*;
 use crate::common::*;
+use bevy::sprite::collide_aabb::collide;
 
 const PADDLE_SPEED: f32 = 20.0;
 
@@ -25,14 +26,33 @@ fn main() {
             SystemSet::new()
                 .with_system(move_paddle.system())
                 .with_system(update_paddle_translation.system())
-                .with_system(update_ball_translation.system()),
+                .with_system(update_ball_translation.system())
+                .with_system(collide_ball.system()),
         )
         .run();
 }
 
-fn update_ball_translation(mut query: Query<&mut Transform, With<Ball>>) {
-    if let Ok(mut transform) = query.single_mut() {
-        transform.translation.x += 1.0;
+fn update_ball_translation(mut query: Query<(&Velocity, &mut Transform), With<Ball>>) {
+    if let Ok((velocity, mut transform)) = query.single_mut() {
+        transform.translation.x += velocity.value[0];
+        transform.translation.y += velocity.value[1];
+    }
+}
+
+fn collide_ball(mut ball_query: Query<(&Transform, &Sprite), With<Ball>>, paddle_query: Query<(&Transform, &Sprite), With<Paddle>>) {
+    if let Ok((ball_transform, ball_sprite)) = ball_query.single_mut() {
+        for (transform, paddle_sprite) in paddle_query.iter() {
+            let collision = collide(
+                ball_transform.translation,
+                ball_sprite.size,
+                transform.translation,
+                paddle_sprite.size,
+            );
+
+            if let Some(collision) = collision {
+                println!("collide");
+            }
+        }
     }
 }
 
@@ -98,7 +118,18 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, w
             },
             ..Default::default()
         })
-        .insert(Ball);
+        .insert(Ball)
+        .insert(Velocity::new(Vec2::new(1.0, 1.0)));
 }
 
 pub struct Ball;
+
+pub struct Velocity {
+    pub value: Vec2,
+}
+
+impl Velocity {
+    fn new(value: Vec2) -> Self {
+        Velocity { value: value.normalize() }
+    }
+}
