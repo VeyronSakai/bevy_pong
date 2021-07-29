@@ -1,13 +1,14 @@
 mod paddle;
 mod common;
+mod ball;
 
 use bevy::prelude::*;
 use crate::paddle::*;
 use crate::common::*;
+use crate::ball::*;
 use bevy::sprite::collide_aabb::*;
 
 const PADDLE_SPEED: f32 = 20.0;
-const BALL_SPEED: f32 = 3.0;
 
 fn main() {
     App::build()
@@ -32,13 +33,6 @@ fn main() {
                 .with_system(ball_collide_wall.system()),
         )
         .run();
-}
-
-fn update_ball_translation(mut query: Query<(&Velocity, &mut Transform), With<Ball>>) {
-    if let Ok((velocity, mut transform)) = query.single_mut() {
-        transform.translation.x += velocity.value.x * BALL_SPEED;
-        transform.translation.y += velocity.value.y * BALL_SPEED;
-    }
 }
 
 fn ball_collide_wall(mut query: Query<(&Transform, &mut Velocity), With<Ball>>, windows: Res<Windows>) {
@@ -154,16 +148,4 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, w
         })
         .insert(Ball)
         .insert(Velocity::new(Vec2::new(1.0, -1.0)));
-}
-
-pub struct Ball;
-
-pub struct Velocity {
-    pub value: Vec2,
-}
-
-impl Velocity {
-    fn new(value: Vec2) -> Self {
-        Velocity { value: value.normalize() }
-    }
 }
