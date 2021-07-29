@@ -4,9 +4,10 @@ mod common;
 use bevy::prelude::*;
 use crate::paddle::*;
 use crate::common::*;
-use bevy::sprite::collide_aabb::collide;
+use bevy::sprite::collide_aabb::*;
 
 const PADDLE_SPEED: f32 = 20.0;
+const BALL_SPEED: f32 = 3.0;
 
 fn main() {
     App::build()
@@ -27,20 +28,20 @@ fn main() {
                 .with_system(move_paddle.system())
                 .with_system(update_paddle_translation.system())
                 .with_system(update_ball_translation.system())
-                .with_system(collide_ball.system()),
+                .with_system(collide_ball_paddle.system()),
         )
         .run();
 }
 
 fn update_ball_translation(mut query: Query<(&Velocity, &mut Transform), With<Ball>>) {
     if let Ok((velocity, mut transform)) = query.single_mut() {
-        transform.translation.x += velocity.value[0];
-        transform.translation.y += velocity.value[1];
+        transform.translation.x += velocity.value[0] * BALL_SPEED;
+        transform.translation.y += velocity.value[1] * BALL_SPEED;
     }
 }
 
-fn collide_ball(mut ball_query: Query<(&Transform, &Sprite), With<Ball>>, paddle_query: Query<(&Transform, &Sprite), With<Paddle>>) {
-    if let Ok((ball_transform, ball_sprite)) = ball_query.single_mut() {
+fn collide_ball_paddle(mut ball_query: Query<(&Transform, &Sprite, &mut Velocity), With<Ball>>, paddle_query: Query<(&Transform, &Sprite), With<Paddle>>) {
+    if let Ok((ball_transform, ball_sprite, mut ball_velocity)) = ball_query.single_mut() {
         for (transform, paddle_sprite) in paddle_query.iter() {
             let collision = collide(
                 ball_transform.translation,
@@ -49,8 +50,24 @@ fn collide_ball(mut ball_query: Query<(&Transform, &Sprite), With<Ball>>, paddle
                 paddle_sprite.size,
             );
 
-            if let Some(collision) = collision {
-                println!("collide");
+            let collision = match collision {
+                Some(collision) => collision,
+                None => continue,
+            };
+
+            let (reflect_x, reflect_y) = match collision {
+                Collision::Left => (ball_velocity.value[0] > 0.0, false),
+                Collision::Right => (ball_velocity.value[0] < 0.0, false),
+                Collision::Top => (false, ball_velocity.value[1] < 0.0),
+                Collision::Bottom => (false, ball_velocity.value[1] > 0.0),
+            };
+
+            if reflect_x {
+                ball_velocity.value[0] = -ball_velocity.value[0];
+            }
+
+            if reflect_y {
+                ball_velocity.value[1] = -ball_velocity.value[1];
             }
         }
     }
@@ -119,7 +136,7 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, w
             ..Default::default()
         })
         .insert(Ball)
-        .insert(Velocity::new(Vec2::new(1.0, 1.0)));
+        .insert(Velocity::new(Vec2::new(1.0, 0.0)));
 }
 
 pub struct Ball;
