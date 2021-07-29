@@ -55,11 +55,14 @@ fn collide_ball_paddle(mut ball_query: Query<(&Transform, &Sprite, &mut Velocity
                 None => continue,
             };
 
-            let (reflect_x, reflect_y) = match collision {
-                Collision::Left => (ball_velocity.value[0] > 0.0, false),
-                Collision::Right => (ball_velocity.value[0] < 0.0, false),
-                Collision::Top => (false, ball_velocity.value[1] < 0.0),
-                Collision::Bottom => (false, ball_velocity.value[1] > 0.0),
+            let mut reflect_x = false;
+            let mut reflect_y = false;
+
+            match collision {
+                Collision::Left => reflect_x = ball_velocity.value[0] > 0.0,
+                Collision::Right => reflect_x = ball_velocity.value[0] < 0.0,
+                Collision::Top => reflect_y = ball_velocity.value[1] < 0.0,
+                Collision::Bottom => reflect_y = ball_velocity.value[1] > 0.0,
             };
 
             if reflect_x {
