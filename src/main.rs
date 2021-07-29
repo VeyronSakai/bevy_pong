@@ -28,19 +28,33 @@ fn main() {
                 .with_system(move_paddle.system())
                 .with_system(update_paddle_translation.system())
                 .with_system(update_ball_translation.system())
-                .with_system(collide_ball_paddle.system()),
+                .with_system(ball_collide_paddle.system())
+                .with_system(ball_collide_wall.system()),
         )
         .run();
 }
 
 fn update_ball_translation(mut query: Query<(&Velocity, &mut Transform), With<Ball>>) {
     if let Ok((velocity, mut transform)) = query.single_mut() {
-        transform.translation.x += velocity.value[0] * BALL_SPEED;
-        transform.translation.y += velocity.value[1] * BALL_SPEED;
+        transform.translation.x += velocity.value.x * BALL_SPEED;
+        transform.translation.y += velocity.value.y * BALL_SPEED;
     }
 }
 
-fn collide_ball_paddle(mut ball_query: Query<(&Transform, &Sprite, &mut Velocity), With<Ball>>, paddle_query: Query<(&Transform, &Sprite), With<Paddle>>) {
+fn ball_collide_wall(mut query: Query<(&Transform, &mut Velocity), With<Ball>>, windows: Res<Windows>) {
+    if let Ok((transform, mut velocity)) = query.single_mut() {
+        let window = windows.get_primary().unwrap();
+        if transform.translation.y < -window.height() / 2.0 {
+            velocity.value.y = -velocity.value.y;
+        }
+
+        if transform.translation.y > window.height() / 2.0 {
+            velocity.value.y = -velocity.value.y;
+        }
+    }
+}
+
+fn ball_collide_paddle(mut ball_query: Query<(&Transform, &Sprite, &mut Velocity), With<Ball>>, paddle_query: Query<(&Transform, &Sprite), With<Paddle>>) {
     if let Ok((ball_transform, ball_sprite, mut ball_velocity)) = ball_query.single_mut() {
         for (paddle_transform, paddle_sprite) in paddle_query.iter() {
             let collision = collide(
@@ -139,7 +153,7 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, w
             ..Default::default()
         })
         .insert(Ball)
-        .insert(Velocity::new(Vec2::new(1.0, 0.0)));
+        .insert(Velocity::new(Vec2::new(1.0, -1.0)));
 }
 
 pub struct Ball;
