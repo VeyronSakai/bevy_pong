@@ -42,11 +42,11 @@ fn update_ball_translation(mut query: Query<(&Velocity, &mut Transform), With<Ba
 
 fn collide_ball_paddle(mut ball_query: Query<(&Transform, &Sprite, &mut Velocity), With<Ball>>, paddle_query: Query<(&Transform, &Sprite), With<Paddle>>) {
     if let Ok((ball_transform, ball_sprite, mut ball_velocity)) = ball_query.single_mut() {
-        for (transform, paddle_sprite) in paddle_query.iter() {
+        for (paddle_transform, paddle_sprite) in paddle_query.iter() {
             let collision = collide(
                 ball_transform.translation,
                 ball_sprite.size,
-                transform.translation,
+                paddle_transform.translation,
                 paddle_sprite.size,
             );
 
